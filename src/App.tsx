@@ -232,7 +232,7 @@ function App() {
             muuvi <span className="text-blue-600">convert</span>
           </h1>
           <p className="text-lg text-gray-600">
-            Sua ferramenta de conversão de PDV e Otimização de imagens online e
+            Sua ferramenta de conversão de PDF e Otimização de imagens online e
             gratuita
           </p>
 
