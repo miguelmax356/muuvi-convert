@@ -8,9 +8,14 @@ import {
   Loader,
   Info,
   CheckCircle2,
+  Presentation,
 } from "lucide-react";
 
-import { convertPDFToWord, convertPDFToExcel } from "../utils/pdfConverter";
+import {
+  convertPDFToWord,
+  convertPDFToExcel,
+  convertPDFToPPTVisual,
+} from "../utils/pdfConverter";
 
 export function PDFConverter() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -21,7 +26,7 @@ export function PDFConverter() {
   const [progressMsg, setProgressMsg] = useState("");
 
   const [conversionResult, setConversionResult] = useState<{
-    format: "word" | "excel";
+    format: "word" | "excel" | "ppt";
     blob: Blob;
     filename: string;
   } | null>(null);
@@ -55,7 +60,7 @@ export function PDFConverter() {
     acceptPDF(e.target.files?.[0]);
   };
 
-  const handleConvert = async (format: "word" | "excel") => {
+  const handleConvert = async (format: "word" | "excel" | "ppt") => {
     if (!selectedFile) return;
 
     setIsProcessing(true);
@@ -73,9 +78,16 @@ export function PDFConverter() {
           setProgress(p);
           if (msg) setProgressMsg(msg);
         });
-      } else {
+      } else if (format === "excel") {
         extension = "xlsx";
         blob = await convertPDFToExcel(selectedFile, (p, msg) => {
+          setProgress(p);
+          if (msg) setProgressMsg(msg);
+        });
+      } else {
+        // ✅ PPT visual
+        extension = "pptx";
+        blob = await convertPDFToPPTVisual(selectedFile, (p, msg) => {
           setProgress(p);
           if (msg) setProgressMsg(msg);
         });
@@ -153,13 +165,12 @@ export function PDFConverter() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      {/* ✅ UM ÚNICO CONTAINER */}
       <div className="bg-white rounded-2xl p-8 shadow-sm">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
-              PDF → Word / Excel
+              PDF → Word / Excel / PPT
             </h2>
             <p className="text-gray-600 mt-1">
               Converta seu PDF diretamente no navegador.
@@ -232,12 +243,14 @@ export function PDFConverter() {
               <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-blue-700">
                 Escolha o formato e aguarde. Se o PDF for escaneado (imagem), a
-                extração pode vir vazia.
+                extração pode vir vazia. <br />
+                <span className="font-semibold">PDF → PPT (visual):</span> cada
+                página vira um slide mantendo o visual original.
               </p>
             </div>
 
             {/* Botões converter */}
-            <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <div className="grid md:grid-cols-3 gap-4 mt-4">
               <button
                 onClick={() => handleConvert("word")}
                 disabled={isProcessing}
@@ -263,6 +276,22 @@ export function PDFConverter() {
                     Converter para Excel
                   </p>
                   <p className="text-sm text-gray-600">.xlsx</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleConvert("ppt")}
+                disabled={isProcessing}
+                className="flex items-center justify-center gap-3 p-5 border-2 border-purple-200 rounded-xl hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Presentation className="w-7 h-7 text-purple-600" />
+                <div className="text-left">
+                  <p className="font-semibold text-gray-800">
+                    PDF → PPT (visual)
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Cada página vira um slide
+                  </p>
                 </div>
               </button>
             </div>
