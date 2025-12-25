@@ -90,18 +90,21 @@ export function Footer() {
 
           <div className="flex items-center gap-4">
             <a
-              href="#"
-              className="hover:text-blue-600 transition-colors flex items-center gap-1"
+              href="/termos.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 transition-colors"
             >
-              <Info className="w-4 h-4" />
-              Termos
+              Termos de Uso
             </a>
+
             <a
-              href="#"
-              className="hover:text-blue-600 transition-colors flex items-center gap-1"
+              href="/privacidade.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 transition-colors"
             >
-              <Info className="w-4 h-4" />
-              Privacidade
+              Política de Privacidade
             </a>
           </div>
         </div>
