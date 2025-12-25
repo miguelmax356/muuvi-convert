@@ -15,6 +15,7 @@ import { useAuth } from "./context/AuthContext";
 import { AuthModal } from "./components/AuthModal";
 import { PricingModal } from "./components/PricingModal";
 import { GoogleAdsense } from "./components/GoogleAdsense";
+import { Footer } from "./components/Footer";
 
 const PDFConverter = lazy(() =>
   import("./components/PDFConverter").then((m) => ({ default: m.PDFConverter }))
@@ -34,7 +35,7 @@ function App() {
   const [compressedPreview, setCompressedPreview] = useState<string>("");
   const [originalSize, setOriginalSize] = useState<number>(0);
   const [compressedSize, setCompressedSize] = useState<number>(0);
-  const [targetSize, setTargetSize] = useState<250 | 350>(250);
+  const [targetSize, setTargetSize] = useState<250 | 350 | 500 | 1024>(250);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [compressedBlob, setCompressedBlob] = useState<Blob | null>(null);
@@ -303,27 +304,22 @@ function App() {
                     <h4 className="font-semibold text-gray-800 mb-2">
                       Escolha o tamanho final:
                     </h4>
-                    <div className="flex gap-4">
-                      <button
-                        onClick={() => setTargetSize(250)}
-                        className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                          targetSize === 250
-                            ? "bg-blue-600 text-white shadow-lg"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        250 KB
-                      </button>
-                      <button
-                        onClick={() => setTargetSize(350)}
-                        className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                          targetSize === 350
-                            ? "bg-blue-600 text-white shadow-lg"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        350 KB
-                      </button>
+                    <div className="flex ml-10 gap-4 flex-wrap">
+                      {[250, 350, 500, 1024].map((size) => (
+                        <button
+                          key={size}
+                          onClick={() =>
+                            setTargetSize(size as 250 | 350 | 500 | 1024)
+                          }
+                          className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                            targetSize === size
+                              ? "bg-blue-600 text-white shadow-lg"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          {size === 1024 ? "1 MB" : `${size} KB`}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -358,8 +354,10 @@ function App() {
               <div className="bg-white rounded-xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-xl font-semibold text-gray-800">
-                    Tamanho alvo: {targetSize} KB
+                    Tamanho alvo:{" "}
+                    {targetSize === 1024 ? "1 MB" : `${targetSize} KB`}
                   </h3>
+
                   <button
                     onClick={reset}
                     className="text-blue-600 hover:text-blue-700 font-medium"
@@ -459,11 +457,6 @@ function App() {
         )}
 
         <GoogleAdsense />
-
-        <div className="mt-12 text-center text-sm text-gray-500">
-          <p>Todas as imagens são processadas localmente no seu navegador.</p>
-          <p>Suas imagens não são enviadas para nenhum servidor.</p>
-        </div>
       </div>
 
       <AuthModal
@@ -478,6 +471,8 @@ function App() {
         onCheckout={handleCheckout}
         isLoading={isCheckoutLoading}
       />
+
+      <Footer />
     </div>
   );
 }
