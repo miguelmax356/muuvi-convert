@@ -1,4 +1,4 @@
-import { ShieldCheck, Image, Link, Info, ChefHat, BotIcon } from "lucide-react";
+import { ShieldCheck, Image, Link, ChefHat, BotIcon, Info } from "lucide-react";
 
 export function Footer() {
   return (
@@ -93,8 +93,9 @@ export function Footer() {
               href="/termos.html"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-blue-600 transition-colors"
+              className="flex items-center gap-1 hover:text-blue-600 transition-colors"
             >
+              <Info className="w-4 h-4" />
               Termos de Uso
             </a>
 
@@ -102,8 +103,9 @@ export function Footer() {
               href="/privacidade.html"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-blue-600 transition-colors"
+              className="flex items-center gap-1 hover:text-blue-600 transition-colors"
             >
+              <Info className="w-4 h-4" />
               Política de Privacidade
             </a>
           </div>
