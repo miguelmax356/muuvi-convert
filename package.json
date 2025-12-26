@@ -11,11 +11,13 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
     "@stripe/react-stripe-js": "^2.9.0",
     "@stripe/stripe-js": "^3.5.0",
     "@supabase/supabase-js": "^2.57.4",
     "docx": "^8.5.4",
     "lucide-react": "^0.344.0",
+    "onnxruntime-web": "^1.21.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.0.379",
     "pptxgenjs": "^4.0.1",
