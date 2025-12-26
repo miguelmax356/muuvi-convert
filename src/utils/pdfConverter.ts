@@ -1,7 +1,6 @@
 // src/utils/pdfConverter.ts
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf";
 import pdfWorker from "pdfjs-dist/legacy/build/pdf.worker?url";
-
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 import {
@@ -14,15 +13,18 @@ import {
 } from "docx";
 import * as XLSX from "xlsx";
 
-// ✅ PPTX no browser
+// ✅ NOVO: PPTX visual
 import PptxGenJS from "pptxgenjs";
+
+// ✅ NOVO: compressão (best-effort, sem perder qualidade quando possível)
+import { PDFDocument } from "pdf-lib";
 
 export interface PDFContent {
   textByPage: string[];
   pageImages: Blob[]; // PNG de cada página (render)
 }
 
-export type ProgressCb = (progress: number, msg?: string) => void;
+type ProgressCb = (progress: number, msg?: string) => void;
 
 /**
  * Extrai texto + renderiza cada página do PDF como imagem (PNG).
@@ -38,15 +40,13 @@ export const extractPDFContent = async (
   const textByPage: string[] = [];
   const pageImages: Blob[] = [];
 
-  const total = pdf.numPages;
-
-  for (let pageNum = 1; pageNum <= total; pageNum++) {
-    const page = await pdf.getPage(pageNum);
-
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     onProgress?.(
-      Math.min(99, Math.round(((pageNum - 1) / total) * 100)),
-      `Lendo página ${pageNum} de ${total}...`
+      Math.round((pageNum / pdf.numPages) * 70),
+      `Lendo página ${pageNum}/${pdf.numPages}...`
     );
+
+    const page = await pdf.getPage(pageNum);
 
     // 1) Texto
     const textContent = await page.getTextContent();
@@ -60,17 +60,13 @@ export const extractPDFContent = async (
 
     // 2) Render da página como PNG (pega imagens, gráficos, slide inteiro)
     const pngBlob = await renderPageToPNG(page, {
-      scale: 2, // 2 = bom; 3 = mais pesado
+      scale: 2, // qualidade boa
       background: "#FFFFFF",
     });
     pageImages.push(pngBlob);
-
-    onProgress?.(
-      Math.min(99, Math.round((pageNum / total) * 100)),
-      `Renderizando página ${pageNum} de ${total}...`
-    );
   }
 
+  onProgress?.(75, "Organizando conteúdo...");
   return { textByPage, pageImages };
 };
 
@@ -95,7 +91,9 @@ async function renderPageToPNG(
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
-  if (!ctx) throw new Error("Canvas 2D context não disponível.");
+  if (!ctx) {
+    throw new Error("Canvas 2D context não disponível.");
+  }
 
   canvas.width = Math.floor(viewport.width);
   canvas.height = Math.floor(viewport.height);
@@ -121,7 +119,7 @@ async function renderPageToPNG(
 }
 
 /**
- * Converte PDF → Word:
+ * Converte PDF → Word (visual + texto):
  * - Insere IMAGEM da página (captura slide inteiro)
  * - Insere texto extraído (se existir)
  *
@@ -131,18 +129,19 @@ export const convertPDFToWord = async (
   file: File,
   onProgress?: ProgressCb
 ): Promise<Blob> => {
-  const content = await extractPDFContent(file, (p, msg) => {
-    onProgress?.(Math.min(95, p), msg);
-  });
-
-  onProgress?.(96, "Montando Word...");
+  onProgress?.(1, "Preparando leitura do PDF...");
+  const content = await extractPDFContent(file, onProgress);
 
   const children: Array<Paragraph> = [];
 
   for (let i = 0; i < content.pageImages.length; i++) {
     const pageNumber = i + 1;
+    onProgress?.(
+      75 + Math.round(((i + 1) / content.pageImages.length) * 20),
+      `Montando Word (${pageNumber}/${content.pageImages.length})...`
+    );
 
-    // Título simples por página
+    // Título por página
     children.push(
       new Paragraph({
         text: `Página ${pageNumber}`,
@@ -160,7 +159,6 @@ export const convertPDFToWord = async (
           new ImageRun({
             data: imgBytes,
             transformation: {
-              // Ajuste “tamanho no Word”.
               width: 900,
               height: 780,
             },
@@ -185,9 +183,6 @@ export const convertPDFToWord = async (
     if (i < content.pageImages.length - 1) {
       children.push(new Paragraph({ children: [new PageBreak()] }));
     }
-
-    const progress = Math.round(((i + 1) / content.pageImages.length) * 3) + 96; // 96..99
-    onProgress?.(Math.min(99, progress), `Finalizando página ${pageNumber}...`);
   }
 
   if (children.length === 0) {
@@ -198,26 +193,25 @@ export const convertPDFToWord = async (
     sections: [{ children }],
   });
 
+  onProgress?.(98, "Finalizando Word...");
   const blob = await Packer.toBlob(doc);
-  onProgress?.(100, "Arquivo pronto para baixar!");
+  onProgress?.(100, "Word pronto!");
   return blob;
 };
 
 /**
  * Converte PDF → Excel (texto).
- * Observação: Excel com imagens é possível, mas é outra implementação (mais complexa).
  */
 export const convertPDFToExcel = async (
   file: File,
   onProgress?: ProgressCb
 ): Promise<Blob> => {
-  const content = await extractPDFContent(file, (p, msg) => {
-    onProgress?.(Math.min(90, p), msg);
-  });
+  onProgress?.(1, "Lendo PDF...");
+  const content = await extractPDFContent(file, onProgress);
 
-  onProgress?.(92, "Montando Excel...");
-
+  onProgress?.(80, "Montando planilha...");
   const workbook = XLSX.utils.book_new();
+
   const wsData: string[][] = [["Conteúdo do PDF (texto)"]];
 
   content.textByPage.forEach((pageText, idx) => {
@@ -228,7 +222,6 @@ export const convertPDFToExcel = async (
       return;
     }
 
-    // quebra por “sentenças” só pra organizar
     const lines = pageText
       .split(/[.!?]+/)
       .map((s) => s.trim())
@@ -236,9 +229,6 @@ export const convertPDFToExcel = async (
 
     lines.forEach((line) => wsData.push([line]));
     wsData.push([""]);
-
-    const p = 92 + Math.round(((idx + 1) / content.textByPage.length) * 7); // 92..99
-    onProgress?.(Math.min(99, p), `Organizando página ${idx + 1}...`);
   });
 
   const worksheet = XLSX.utils.aoa_to_sheet(wsData);
@@ -246,127 +236,117 @@ export const convertPDFToExcel = async (
 
   XLSX.utils.book_append_sheet(workbook, worksheet, "Conteúdo");
 
+  onProgress?.(95, "Gerando arquivo Excel...");
   const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
 
-  onProgress?.(100, "Arquivo pronto para baixar!");
+  onProgress?.(100, "Excel pronto!");
   return new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
 };
 
-// ============================
-// ✅ PDF → PPTX (VISUAL)
-// ============================
-
-function blobToDataURL(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Falha ao ler imagem do PDF."));
-    reader.onload = () => resolve(String(reader.result));
-    reader.readAsDataURL(blob);
-  });
-}
-
-function getImageSize(
-  dataUrl: string
-): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () =>
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () =>
-      reject(new Error("Falha ao carregar imagem renderizada."));
-    img.src = dataUrl;
-  });
-}
-
-function fitContain(
-  imgW: number,
-  imgH: number,
-  boxW: number,
-  boxH: number
-): { x: number; y: number; w: number; h: number } {
-  const imgRatio = imgW / imgH;
-  const boxRatio = boxW / boxH;
-
-  let w = boxW;
-  let h = boxH;
-
-  if (imgRatio > boxRatio) {
-    // imagem “mais larga” -> limita pela largura
-    w = boxW;
-    h = w / imgRatio;
-  } else {
-    // imagem “mais alta” -> limita pela altura
-    h = boxH;
-    w = h * imgRatio;
-  }
-
-  const x = (boxW - w) / 2;
-  const y = (boxH - h) / 2;
-
-  return { x, y, w, h };
-}
-
 /**
- * PDF → PPTX (visual)
- * Cada página do PDF vira 1 slide com a imagem renderizada (mantém o visual).
+ * ✅ NOVO — PDF → PPT (visual):
+ * Cada página vira 1 slide, mantendo o visual original (render em imagem).
  */
 export const convertPDFToPPTVisual = async (
   file: File,
   onProgress?: ProgressCb
 ): Promise<Blob> => {
-  const content = await extractPDFContent(file, (p, msg) => {
-    onProgress?.(Math.min(85, p), msg);
-  });
+  onProgress?.(1, "Renderizando páginas do PDF (visual)...");
+  const content = await extractPDFContent(file, onProgress);
 
-  onProgress?.(86, "Montando PowerPoint (visual)...");
-
-  // Widescreen padrão (16:9)
+  onProgress?.(80, "Montando PPTX...");
   const pptx = new PptxGenJS();
+
+  // Layout widescreen (16:9) — fica com cara de apresentação
   pptx.layout = "LAYOUT_WIDE";
 
-  // Dimensões do slide em polegadas no LAYOUT_WIDE:
-  // (pptx usa inches internamente)
-  const slideW = 13.333; // ~13.33
-  const slideH = 7.5;
+  // Tamanho padrão em polegadas para 16:9 no pptxgenjs (13.333 x 7.5)
+  const SLIDE_W = 13.333;
+  const SLIDE_H = 7.5;
 
-  const total = content.pageImages.length;
-
-  for (let i = 0; i < total; i++) {
-    const n = i + 1;
+  for (let i = 0; i < content.pageImages.length; i++) {
     onProgress?.(
-      Math.min(99, 86 + Math.round((n / total) * 13)),
-      `Criando slide ${n} de ${total}...`
+      80 + Math.round(((i + 1) / content.pageImages.length) * 18),
+      `Criando slide ${i + 1}/${content.pageImages.length}...`
     );
 
-    const dataUrl = await blobToDataURL(content.pageImages[i]);
-    const { width, height } = await getImageSize(dataUrl);
-
     const slide = pptx.addSlide();
-    // fundo branco
-    slide.background = { color: "FFFFFF" };
 
-    // coloca a imagem “contida” no slide (sem distorcer)
-    const rect = fitContain(width, height, slideW, slideH);
+    // Converter Blob PNG para dataURL
+    const dataUrl = await blobToDataURL(content.pageImages[i]);
 
+    // Colocar imagem preenchendo o slide (visual “perfeito”)
     slide.addImage({
-      data: dataUrl, // ✅ dataURL funciona no browser
-      x: rect.x,
-      y: rect.y,
-      w: rect.w,
-      h: rect.h,
+      data: dataUrl,
+      x: 0,
+      y: 0,
+      w: SLIDE_W,
+      h: SLIDE_H,
     });
   }
 
-  onProgress?.(99, "Gerando arquivo PPTX...");
+  onProgress?.(99, "Finalizando PPTX...");
+  // Browser: retorna ArrayBuffer
+  const arrayBuffer = await pptx.write("arraybuffer");
+  onProgress?.(100, "PPTX pronto!");
 
-  // ✅ Browser-safe: gera ArrayBuffer e vira Blob
-  const ab = await pptx.write("arraybuffer");
-  const blob = new Blob([ab], {
+  return new Blob([arrayBuffer], {
     type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   });
+};
 
-  onProgress?.(100, "Arquivo pronto para baixar!");
-  return blob;
+async function blobToDataURL(blob: Blob): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Falha ao ler imagem."));
+    reader.onload = () => resolve(String(reader.result));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * ✅ NOVO — Comprimir PDF (best-effort, “lossless” quando possível):
+ * - Re-salva o PDF com estruturas mais compactas (object streams)
+ * - Remove metadados comuns
+ *
+ * Observação honesta: PDFs que já estão otimizados podem reduzir pouco
+ * ou até ficar iguais. A integridade do conteúdo é mantida.
+ */
+export const compressPDF = async (
+  file: File,
+  onProgress?: ProgressCb
+): Promise<Blob> => {
+  onProgress?.(1, "Abrindo PDF para otimização...");
+  const inputBytes = await file.arrayBuffer();
+
+  const pdfDoc = await PDFDocument.load(inputBytes, {
+    updateMetadata: false,
+    ignoreEncryption: true,
+  });
+
+  onProgress?.(35, "Removendo metadados e otimizando estruturas...");
+
+  // “limpa” metadados (mantém documento ok; evita inchados)
+  try {
+    pdfDoc.setTitle("");
+    pdfDoc.setAuthor("");
+    pdfDoc.setSubject("");
+    pdfDoc.setKeywords([]);
+    pdfDoc.setProducer("");
+    pdfDoc.setCreator("");
+  } catch {
+    // se algum PDF não permitir, seguimos
+  }
+
+  onProgress?.(70, "Regerando PDF compactado (sem perder qualidade)...");
+  const outBytes = await pdfDoc.save({
+    useObjectStreams: true, // melhora compressão estrutural
+    addDefaultPage: false,
+    // compressão interna de streams é aplicada pelo pdf-lib quando possível
+  });
+
+  onProgress?.(100, "PDF comprimido pronto!");
+  return new Blob([outBytes], { type: "application/pdf" });
 };

@@ -9,13 +9,17 @@ import {
   Info,
   CheckCircle2,
   Presentation,
+  FileArchive,
 } from "lucide-react";
 
 import {
   convertPDFToWord,
   convertPDFToExcel,
   convertPDFToPPTVisual,
+  compressPDF,
 } from "../utils/pdfConverter";
+
+type ConvertFormat = "word" | "excel" | "ppt" | "compress";
 
 export function PDFConverter() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -26,7 +30,7 @@ export function PDFConverter() {
   const [progressMsg, setProgressMsg] = useState("");
 
   const [conversionResult, setConversionResult] = useState<{
-    format: "word" | "excel" | "ppt";
+    format: ConvertFormat;
     blob: Blob;
     filename: string;
   } | null>(null);
@@ -60,7 +64,7 @@ export function PDFConverter() {
     acceptPDF(e.target.files?.[0]);
   };
 
-  const handleConvert = async (format: "word" | "excel" | "ppt") => {
+  const handleConvert = async (format: ConvertFormat) => {
     if (!selectedFile) return;
 
     setIsProcessing(true);
@@ -84,26 +88,34 @@ export function PDFConverter() {
           setProgress(p);
           if (msg) setProgressMsg(msg);
         });
-      } else {
-        // ✅ PPT visual
+      } else if (format === "ppt") {
         extension = "pptx";
         blob = await convertPDFToPPTVisual(selectedFile, (p, msg) => {
           setProgress(p);
           if (msg) setProgressMsg(msg);
         });
+      } else {
+        // compress
+        extension = "pdf";
+        blob = await compressPDF(selectedFile, (p, msg) => {
+          setProgress(p);
+          if (msg) setProgressMsg(msg);
+        });
       }
 
-      const filename = `${selectedFile.name.replace(
-        /\.pdf$/i,
-        ""
-      )}.${extension}`;
+      const baseName = selectedFile.name.replace(/\.pdf$/i, "");
+      const filename =
+        format === "compress"
+          ? `${baseName}.compressed.${extension}`
+          : `${baseName}.${extension}`;
+
       setConversionResult({ format, blob, filename });
       setProgress(100);
       setProgressMsg("Arquivo pronto para baixar!");
     } catch (error) {
       console.error("Conversion error:", error);
       setProgress(0);
-      setProgressMsg("Erro ao converter. Tente outro PDF.");
+      setProgressMsg("Erro ao processar. Tente outro PDF.");
     } finally {
       setIsProcessing(false);
     }
@@ -143,7 +155,7 @@ export function PDFConverter() {
       return (
         <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg">
           <Loader className="w-4 h-4 animate-spin" />
-          <span className="text-sm font-medium">Convertendo...</span>
+          <span className="text-sm font-medium">Processando...</span>
         </div>
       );
     }
@@ -165,15 +177,16 @@ export function PDFConverter() {
 
   return (
     <div className="max-w-2xl mx-auto">
+      {/* ✅ UM ÚNICO CONTAINER */}
       <div className="bg-white rounded-2xl p-8 shadow-sm">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
-              PDF → Word / Excel / PPT
+              PDF → Word / Excel / PPT + Compressão
             </h2>
             <p className="text-gray-600 mt-1">
-              Converta seu PDF diretamente no navegador.
+              Converta e compacte seu PDF diretamente no navegador.
             </p>
           </div>
           {statusBadge}
@@ -242,15 +255,15 @@ export function PDFConverter() {
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4 flex items-start gap-3">
               <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-blue-700">
-                Escolha o formato e aguarde. Se o PDF for escaneado (imagem), a
-                extração pode vir vazia. <br />
-                <span className="font-semibold">PDF → PPT (visual):</span> cada
-                página vira um slide mantendo o visual original.
+                • Word/Excel tentam extrair texto. <br />•{" "}
+                <b>PDF → PPT (visual)</b>: cada página vira um slide mantendo o
+                visual. <br />• <b>Comprimir PDF</b>: tenta reduzir tamanho sem
+                perder qualidade (quando possível).
               </p>
             </div>
 
-            {/* Botões converter */}
-            <div className="grid md:grid-cols-3 gap-4 mt-4">
+            {/* Botões */}
+            <div className="grid md:grid-cols-2 gap-4 mt-4">
               <button
                 onClick={() => handleConvert("word")}
                 disabled={isProcessing}
@@ -289,9 +302,19 @@ export function PDFConverter() {
                   <p className="font-semibold text-gray-800">
                     PDF → PPT (visual)
                   </p>
-                  <p className="text-sm text-gray-600">
-                    Cada página vira um slide
-                  </p>
+                  <p className="text-sm text-gray-600">.pptx (slides)</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleConvert("compress")}
+                disabled={isProcessing}
+                className="flex items-center justify-center gap-3 p-5 border-2 border-amber-200 rounded-xl hover:bg-amber-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FileArchive className="w-7 h-7 text-amber-600" />
+                <div className="text-left">
+                  <p className="font-semibold text-gray-800">Comprimir PDF</p>
+                  <p className="text-sm text-gray-600">.pdf menor</p>
                 </div>
               </button>
             </div>
@@ -327,8 +350,8 @@ export function PDFConverter() {
               >
                 <Download className="w-5 h-5" />
                 {canDownload
-                  ? "Baixar arquivo convertido"
-                  : "Baixar (aguardando conversão)"}
+                  ? "Baixar arquivo pronto"
+                  : "Baixar (aguardando processamento)"}
               </button>
 
               <div className="flex-1 bg-gray-50 rounded-xl p-4">
