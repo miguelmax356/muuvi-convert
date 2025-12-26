@@ -11,11 +11,17 @@ import {
   Crown,
   FileText,
   Scissors,
+  Lock,
+  Type,
+  Video,
 } from "lucide-react";
 
 import { compressImage } from "./utils/imageCompressor";
 import { BackgroundRemover } from "./components/BackgroundRemover";
 import { ImagePlatformResizer } from "./components/ImagePlatformResizer";
+import { PdfSecurity } from "./components/PdfSecurity";
+import { TextCaseConverter } from "./components/TextCaseConverter";
+import { VideoCompressor } from "./components/VideoCompressor";
 
 import { useAuth } from "./context/AuthContext";
 import { AuthModal } from "./components/AuthModal";
@@ -27,7 +33,14 @@ const PDFConverter = lazy(() =>
   import("./components/PDFConverter").then((m) => ({ default: m.PDFConverter }))
 );
 
-type Tool = "image" | "pdf" | "bg" | "resize";
+type Tool =
+  | "image"
+  | "pdf"
+  | "bg"
+  | "resize"
+  | "pdf-security"
+  | "text"
+  | "video";
 type TargetSize = 250 | 350 | 500 | 1024;
 
 function App() {
@@ -241,7 +254,15 @@ function App() {
   const renderToolContent = () => {
     if (currentTool === "bg") return <BackgroundRemover />;
 
+    if (currentTool === "pdf-security") {
+      return <PdfSecurity />;
+    }
+
     if (currentTool === "resize") return <ImagePlatformResizer />;
+
+    if (currentTool === "text") return <TextCaseConverter />;
+
+    if (currentTool === "video") return <VideoCompressor />;
 
     if (currentTool === "pdf") {
       return (
@@ -542,6 +563,30 @@ function App() {
               icon={<FileText className="w-5 h-5" />}
             >
               Conversor PDF
+            </ToolButton>
+
+            <ToolButton
+              active={currentTool === "pdf-security"}
+              onClick={() => setCurrentTool("pdf-security")}
+              icon={<Lock className="w-5 h-5" />}
+            >
+              Segurança PDF
+            </ToolButton>
+
+            <ToolButton
+              active={currentTool === "text"}
+              onClick={() => setCurrentTool("text")}
+              icon={<Type className="w-5 h-5" />}
+            >
+              Conversor de Texto
+            </ToolButton>
+
+            <ToolButton
+              active={currentTool === "video"}
+              onClick={() => setCurrentTool("video")}
+              icon={<Video className="w-5 h-5" />}
+            >
+              Vídeo Curto
             </ToolButton>
           </div>
         </div>
