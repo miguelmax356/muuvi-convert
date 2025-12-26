@@ -178,204 +178,211 @@ export function PDFConverter() {
   return (
     <div className="max-w-2xl mx-auto">
       {/* ✅ UM ÚNICO CONTAINER */}
-      <div className="bg-white rounded-2xl p-8 shadow-sm">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">
-              PDF → Word / Excel / PPT + Compressão
-            </h2>
-            <p className="text-gray-600 mt-1">
-              Converta e compacte seu PDF diretamente no navegador.
-            </p>
-          </div>
-          {statusBadge}
-        </div>
+      <div className="rounded-2xl p-[1px] bg-gradient-to-r from-orange-500 via-pink-500 to-violet-600 shadow-lg">
+        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-8">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <h2 className="text-2xl font-extrabold text-gray-900">
+                PDF{" "}
+                <span className="bg-gradient-to-r from-orange-600 via-pink-600 to-violet-700 bg-clip-text text-transparent">
+                  Word • Excel • PPT • Compressão
+                </span>
+              </h2>
 
-        {/* Dropzone */}
-        <div
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={`border-3 border-dashed rounded-2xl p-10 text-center transition-all duration-300 ${
-            isDragging
-              ? "border-blue-500 bg-blue-50 scale-[1.01]"
-              : "border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50/50"
-          }`}
-        >
-          <Upload className="w-14 h-14 mx-auto mb-4 text-blue-500" />
-          <h3 className="text-xl font-semibold text-gray-700">
-            Arraste seu PDF aqui
-          </h3>
-          <p className="text-gray-500 mt-2 mb-5">
-            ou selecione do seu computador
-          </p>
-
-          <label className="inline-block">
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <span className="cursor-pointer bg-blue-600 text-white px-7 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-block">
-              Selecionar PDF
-            </span>
-          </label>
-
-          <p className="text-sm text-gray-400 mt-4">Formato suportado: PDF</p>
-        </div>
-
-        {/* Arquivo selecionado + ações */}
-        {selectedFile && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-              <div className="flex items-center gap-3">
-                <FileText className="w-6 h-6 text-red-600" />
-                <div>
-                  <p className="font-semibold text-gray-800">
-                    {selectedFile.name}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {formatFileSize(selectedFile.size)}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={reset}
-                className="text-gray-400 hover:text-gray-700 transition-colors"
-                disabled={isProcessing}
-                title="Remover arquivo"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4 flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-blue-700">
-                • Word/Excel tentam extrair texto. <br />•{" "}
-                <b>PDF → PPT (visual)</b>: cada página vira um slide mantendo o
-                visual. <br />• <b>Comprimir PDF</b>: tenta reduzir tamanho sem
-                perder qualidade (quando possível).
+              <p className="text-gray-600 mt-1">
+                Converta e compacte seu PDF diretamente no navegador.
               </p>
             </div>
+            {statusBadge}
+          </div>
 
-            {/* Botões */}
-            <div className="grid md:grid-cols-2 gap-4 mt-4">
-              <button
-                onClick={() => handleConvert("word")}
-                disabled={isProcessing}
-                className="flex items-center justify-center gap-3 p-5 border-2 border-blue-200 rounded-xl hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FileText className="w-7 h-7 text-blue-600" />
-                <div className="text-left">
-                  <p className="font-semibold text-gray-800">
-                    Converter para Word
-                  </p>
-                  <p className="text-sm text-gray-600">.docx</p>
-                </div>
-              </button>
+          {/* Dropzone */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`border-3 border-dashed rounded-2xl p-10 text-center transition-all duration-300 ${
+              isDragging
+                ? "border-violet-500 bg-violet-50 scale-[1.01]"
+                : "border-orange-300 bg-white hover:border-pink-400 hover:bg-pink-50/40"
+            }`}
+          >
+            <Upload className="w-14 h-14 mx-auto mb-4 text-pink-500" />
 
-              <button
-                onClick={() => handleConvert("excel")}
-                disabled={isProcessing}
-                className="flex items-center justify-center gap-3 p-5 border-2 border-green-200 rounded-xl hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FileIcon className="w-7 h-7 text-green-600" />
-                <div className="text-left">
-                  <p className="font-semibold text-gray-800">
-                    Converter para Excel
-                  </p>
-                  <p className="text-sm text-gray-600">.xlsx</p>
-                </div>
-              </button>
+            <h3 className="text-xl font-semibold text-gray-700">
+              Arraste seu PDF aqui
+            </h3>
+            <p className="text-gray-500 mt-2 mb-5">
+              ou selecione do seu computador
+            </p>
 
-              <button
-                onClick={() => handleConvert("ppt")}
-                disabled={isProcessing}
-                className="flex items-center justify-center gap-3 p-5 border-2 border-purple-200 rounded-xl hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Presentation className="w-7 h-7 text-purple-600" />
-                <div className="text-left">
-                  <p className="font-semibold text-gray-800">
-                    PDF → PPT (visual)
-                  </p>
-                  <p className="text-sm text-gray-600">.pptx (slides)</p>
-                </div>
-              </button>
+            <label className="inline-block">
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <span className="cursor-pointer bg-blue-600 text-white px-7 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-block">
+                Selecionar PDF
+              </span>
+            </label>
 
-              <button
-                onClick={() => handleConvert("compress")}
-                disabled={isProcessing}
-                className="flex items-center justify-center gap-3 p-5 border-2 border-amber-200 rounded-xl hover:bg-amber-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FileArchive className="w-7 h-7 text-amber-600" />
-                <div className="text-left">
-                  <p className="font-semibold text-gray-800">Comprimir PDF</p>
-                  <p className="text-sm text-gray-600">.pdf menor</p>
-                </div>
-              </button>
-            </div>
+            <p className="text-sm text-gray-400 mt-4">Formato suportado: PDF</p>
+          </div>
 
-            {/* Progresso */}
-            {(isProcessing || progressMsg) && (
-              <div className="mt-5">
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                  <span>{progressMsg || "Processando..."}</span>
-                  <span>{progress ? `${progress}%` : ""}</span>
+          {/* Arquivo selecionado + ações */}
+          {selectedFile && (
+            <div className="mt-6">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-6 h-6 text-red-600" />
+                  <div>
+                    <p className="font-semibold text-gray-800">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {formatFileSize(selectedFile.size)}
+                    </p>
+                  </div>
                 </div>
-                <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-blue-600 transition-all duration-300"
-                    style={{
-                      width: `${Math.min(100, Math.max(0, progress))}%`,
-                    }}
-                  />
-                </div>
+
+                <button
+                  onClick={reset}
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
+                  disabled={isProcessing}
+                  title="Remover arquivo"
+                >
+                  ✕
+                </button>
               </div>
-            )}
 
-            {/* Resultado + Download */}
-            <div className="mt-6 flex flex-col md:flex-row gap-3">
-              <button
-                onClick={handleDownload}
-                disabled={!canDownload}
-                className={`flex-1 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${
-                  canDownload
-                    ? "bg-green-600 text-white hover:bg-green-700"
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                <Download className="w-5 h-5" />
-                {canDownload
-                  ? "Baixar arquivo pronto"
-                  : "Baixar (aguardando processamento)"}
-              </button>
-
-              <div className="flex-1 bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-600">Arquivo de saída:</p>
-                <p className="font-semibold text-gray-800">
-                  {conversionResult?.filename || "—"}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {conversionResult
-                    ? `Tamanho: ${formatFileSize(conversionResult.blob.size)}`
-                    : ""}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mt-4 flex items-start gap-3">
+                <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-blue-700">
+                  • Word/Excel tentam extrair texto. <br />•{" "}
+                  <b>PDF → PPT (visual)</b>: cada página vira um slide mantendo
+                  o visual. <br />• <b>Comprimir PDF</b>: tenta reduzir tamanho
+                  sem perder qualidade (quando possível).
                 </p>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* Rodapé (quando nada selecionado) */}
-        {!selectedFile && (
-          <div className="mt-6 text-sm text-gray-500">
-            Dica: PDFs escaneados (imagem) geralmente precisam de OCR para
-            extrair texto.
-          </div>
-        )}
+              {/* Botões */}
+              <div className="grid md:grid-cols-2 gap-4 mt-4">
+                <button
+                  onClick={() => handleConvert("word")}
+                  disabled={isProcessing}
+                  className="flex items-center justify-center gap-3 p-5 border-2 border-blue-200 rounded-xl hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FileText className="w-7 h-7 text-blue-600" />
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">
+                      Converter para Word
+                    </p>
+                    <p className="text-sm text-gray-600">.docx</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => handleConvert("excel")}
+                  disabled={isProcessing}
+                  className="flex items-center justify-center gap-3 p-5 border-2 border-green-200 rounded-xl hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FileIcon className="w-7 h-7 text-green-600" />
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">
+                      Converter para Excel
+                    </p>
+                    <p className="text-sm text-gray-600">.xlsx</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => handleConvert("ppt")}
+                  disabled={isProcessing}
+                  className="flex items-center justify-center gap-3 p-5 border-2 border-purple-200 rounded-xl hover:bg-purple-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Presentation className="w-7 h-7 text-purple-600" />
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">
+                      PDF → PPT (visual)
+                    </p>
+                    <p className="text-sm text-gray-600">.pptx (slides)</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => handleConvert("compress")}
+                  disabled={isProcessing}
+                  className="flex items-center justify-center gap-3 p-5 border-2 border-amber-200 rounded-xl hover:bg-amber-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FileArchive className="w-7 h-7 text-amber-600" />
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">Comprimir PDF</p>
+                    <p className="text-sm text-gray-600">.pdf menor</p>
+                  </div>
+                </button>
+              </div>
+
+              {/* Progresso */}
+              {(isProcessing || progressMsg) && (
+                <div className="mt-5">
+                  <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                    <span>{progressMsg || "Processando..."}</span>
+                    <span>{progress ? `${progress}%` : ""}</span>
+                  </div>
+                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 transition-all duration-300"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, progress))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Resultado + Download */}
+              <div className="mt-6 flex flex-col md:flex-row gap-3">
+                <button
+                  onClick={handleDownload}
+                  disabled={!canDownload}
+                  className={`flex-1 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+                    canDownload
+                      ? "bg-green-600 text-white hover:bg-green-700"
+                      : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <Download className="w-5 h-5" />
+                  {canDownload
+                    ? "Baixar arquivo pronto"
+                    : "Baixar (aguardando processamento)"}
+                </button>
+
+                <div className="flex-1 bg-gray-50 rounded-xl p-4">
+                  <p className="text-sm text-gray-600">Arquivo de saída:</p>
+                  <p className="font-semibold text-gray-800">
+                    {conversionResult?.filename || "—"}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {conversionResult
+                      ? `Tamanho: ${formatFileSize(conversionResult.blob.size)}`
+                      : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Rodapé (quando nada selecionado) */}
+          {!selectedFile && (
+            <div className="mt-6 text-sm text-gray-500">
+              Dica: PDFs escaneados (imagem) geralmente precisam de OCR para
+              extrair texto.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

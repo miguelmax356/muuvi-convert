@@ -1,4 +1,5 @@
-import { useState, lazy, Suspense } from "react";
+// src/App.tsx
+import { useEffect, useState, lazy, Suspense } from "react";
 import {
   Upload,
   Image as ImageIcon,
@@ -21,6 +22,9 @@ const PDFConverter = lazy(() =>
   import("./components/PDFConverter").then((m) => ({ default: m.PDFConverter }))
 );
 
+type Tool = "image" | "pdf";
+type TargetSize = 250 | 350 | 500 | 1024;
+
 function App() {
   const {
     user,
@@ -29,44 +33,41 @@ function App() {
     signOut,
     isAuthEnabled,
   } = useAuth();
-  const [currentTool, setCurrentTool] = useState<"image" | "pdf">("image");
+
+  const [currentTool, setCurrentTool] = useState<Tool>("image");
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [originalPreview, setOriginalPreview] = useState<string>("");
   const [compressedPreview, setCompressedPreview] = useState<string>("");
   const [originalSize, setOriginalSize] = useState<number>(0);
   const [compressedSize, setCompressedSize] = useState<number>(0);
-  const [targetSize, setTargetSize] = useState<250 | 350 | 500 | 1024>(250);
+
+  const [targetSize, setTargetSize] = useState<TargetSize>(250);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [compressedBlob, setCompressedBlob] = useState<Blob | null>(null);
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
+  const formatSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    if (bytes < k) return bytes + " Bytes";
+    if (bytes < k * k) return (bytes / k).toFixed(2) + " KB";
+    return (bytes / (k * k)).toFixed(2) + " MB";
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith("image/")) {
-      processFile(file);
-    }
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processFile(file);
-    }
+  const reset = () => {
+    setSelectedFile(null);
+    setOriginalPreview("");
+    setCompressedPreview("");
+    setOriginalSize(0);
+    setCompressedSize(0);
+    setCompressedBlob(null);
   };
 
   const processFile = async (file: File) => {
@@ -95,9 +96,32 @@ function App() {
     reader.readAsDataURL(file);
   };
 
+  // Se o usuário trocar o tamanho alvo com imagem já selecionada, recomprime automaticamente
+  useEffect(() => {
+    if (selectedFile) processFile(selectedFile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetSize]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  const handleDragLeave = () => setIsDragging(false);
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) processFile(file);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
   const handleDownload = () => {
     if (!compressedBlob || !selectedFile) return;
-
     const url = URL.createObjectURL(compressedBlob);
     const a = document.createElement("a");
     a.href = url;
@@ -108,23 +132,6 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
-  const formatSize = (bytes: number): string => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    if (bytes < k) return bytes + " Bytes";
-    if (bytes < k * k) return (bytes / k).toFixed(2) + " KB";
-    return (bytes / (k * k)).toFixed(2) + " MB";
-  };
-
-  const reset = () => {
-    setSelectedFile(null);
-    setOriginalPreview("");
-    setCompressedPreview("");
-    setOriginalSize(0);
-    setCompressedSize(0);
-    setCompressedBlob(null);
-  };
-
   const handleCheckout = async (plan: "premium_monthly" | "premium_yearly") => {
     if (!user) {
       setAuthMode("signup");
@@ -133,7 +140,6 @@ function App() {
     }
 
     setIsCheckoutLoading(true);
-
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
@@ -162,20 +168,80 @@ function App() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-violet-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-violet-600 mb-4"></div>
           <p className="text-gray-600">Carregando...</p>
         </div>
       </div>
     );
   }
 
+  const ToolButton = ({
+    active,
+    icon,
+    children,
+    onClick,
+  }: {
+    active: boolean;
+    icon: React.ReactNode;
+    children: React.ReactNode;
+    onClick: () => void;
+  }) => (
+    <button
+      onClick={onClick}
+      className={[
+        "flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all",
+        active
+          ? "text-white shadow-lg bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600"
+          : "bg-white/80 text-gray-700 hover:bg-white border border-gray-200",
+      ].join(" ")}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+
+  const SizeButton = ({
+    value,
+    label,
+  }: {
+    value: TargetSize;
+    label: string;
+  }) => {
+    const active = targetSize === value;
+    return (
+      <button
+        onClick={() => setTargetSize(value)}
+        className={[
+          "px-5 py-3 rounded-xl font-semibold transition-all border",
+          active
+            ? "text-white border-transparent shadow-lg bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600"
+            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50",
+        ].join(" ")}
+      >
+        {label}
+      </button>
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-rose-50 to-violet-50">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="flex items-center justify-between mb-12">
-          <div></div>
+        {/* Top bar */}
+        <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600 shadow-lg flex items-center justify-center">
+              <ImageIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 leading-none">muuvi</p>
+              <p className="text-lg font-bold text-gray-900 leading-none">
+                convert
+              </p>
+            </div>
+          </div>
+
           <div className="flex items-center gap-4">
             {!isAuthEnabled ? (
               <div className="text-xs text-gray-500">
@@ -184,7 +250,7 @@ function App() {
             ) : user ? (
               <>
                 {isPremium && (
-                  <div className="flex items-center gap-2 bg-amber-100 text-amber-700 px-4 py-2 rounded-lg">
+                  <div className="flex items-center gap-2 bg-amber-100 text-amber-700 px-4 py-2 rounded-xl">
                     <Crown className="w-4 h-4" />
                     <span className="text-sm font-medium">Premium</span>
                   </div>
@@ -208,7 +274,7 @@ function App() {
                     setAuthMode("login");
                     setShowAuthModal(true);
                   }}
-                  className="text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-gray-700 hover:text-gray-900 font-medium"
                 >
                   Entrar
                 </button>
@@ -217,7 +283,7 @@ function App() {
                     setAuthMode("signup");
                     setShowAuthModal(true);
                   }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                  className="text-white px-4 py-2 rounded-xl font-medium shadow-lg bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600 hover:opacity-95 transition"
                 >
                   Criar Conta
                 </button>
@@ -225,217 +291,241 @@ function App() {
             )}
           </div>
         </div>
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
-            <ImageIcon className="w-12 h-12 text-blue-600" />
-          </div>
-          <h1 className="text-5xl font-bold text-gray-800 mb-3">
-            muuvi <span className="text-blue-600">convert</span>
+
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-5xl font-extrabold text-gray-900 mb-3">
+            muuvi{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600">
+              convert
+            </span>
           </h1>
           <p className="text-lg text-gray-600">
-            Sua ferramenta de conversão de PDF e Otimização de imagens online e
-            gratuita
+            Conversão de PDF + Otimização de imagens online, gratuita e rápida.
           </p>
 
-          <div className="flex gap-3 justify-center mt-8">
-            <button
+          {/* Menu de ferramentas */}
+          <div className="flex flex-wrap gap-3 justify-center mt-8">
+            <ToolButton
+              active={currentTool === "image"}
               onClick={() => setCurrentTool("image")}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                currentTool === "image"
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              icon={<ImageIcon className="w-5 h-5" />}
             >
-              <ImageIcon className="w-5 h-5" />
               Compressor de Imagens
-            </button>
-            <button
+            </ToolButton>
+
+            <ToolButton
+              active={currentTool === "pdf"}
               onClick={() => setCurrentTool("pdf")}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-                currentTool === "pdf"
-                  ? "bg-blue-600 text-white shadow-lg"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
+              icon={<FileText className="w-5 h-5" />}
             >
-              <FileText className="w-5 h-5" />
               Conversor PDF
-            </button>
+            </ToolButton>
           </div>
         </div>
 
+        {/* Conteúdo */}
         {currentTool === "image" ? (
           !selectedFile ? (
             <div className="max-w-2xl mx-auto">
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${
-                  isDragging
-                    ? "border-blue-500 bg-blue-50 scale-105"
-                    : "border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50/50"
-                }`}
-              >
-                <Upload className="w-16 h-16 mx-auto mb-6 text-blue-500" />
-                <h3 className="text-2xl font-semibold text-gray-700 mb-3">
-                  Arraste sua imagem aqui
-                </h3>
-                <p className="text-gray-500 mb-6">ou</p>
-                <label className="inline-block">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                  <span className="cursor-pointer bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-block">
-                    Selecionar Arquivo
-                  </span>
-                </label>
-                <p className="text-sm text-gray-400 mt-6">
-                  Formatos suportados: JPG, PNG, WEBP
-                </p>
-              </div>
+              {/* Container no mesmo estilo do PDF/Menu */}
+              <div className="rounded-3xl p-[1px] bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600 shadow-lg">
+                <div className="bg-white rounded-3xl p-8">
+                  {/* Dropzone */}
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={[
+                      "border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-300",
+                      isDragging
+                        ? "border-violet-500 bg-violet-50/60 scale-[1.01]"
+                        : "border-gray-300 bg-white hover:border-violet-400 hover:bg-violet-50/30",
+                    ].join(" ")}
+                  >
+                    <Upload className="w-16 h-16 mx-auto mb-6 text-violet-600" />
+                    <h3 className="text-2xl font-semibold text-gray-800 mb-2">
+                      Arraste sua imagem aqui
+                    </h3>
+                    <p className="text-gray-500 mb-6">ou</p>
 
-              <div className="mt-8 bg-white rounded-xl p-6 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-1" />
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">
-                      Escolha o tamanho final:
-                    </h4>
-                    <div className="flex ml-10 gap-4 flex-wrap">
-                      {[250, 350, 500, 1024].map((size) => (
-                        <button
-                          key={size}
-                          onClick={() =>
-                            setTargetSize(size as 250 | 350 | 500 | 1024)
-                          }
-                          className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                            targetSize === size
-                              ? "bg-blue-600 text-white shadow-lg"
-                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                          }`}
-                        >
-                          {size === 1024 ? "1 MB" : `${size} KB`}
-                        </button>
-                      ))}
-                    </div>
+                    <label className="inline-block">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <span className="cursor-pointer text-white px-8 py-3 rounded-xl font-semibold shadow-lg bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600 hover:opacity-95 transition inline-block">
+                        Selecionar Arquivo
+                      </span>
+                    </label>
+
+                    <p className="text-sm text-gray-400 mt-6">
+                      Formatos suportados: JPG, PNG, WEBP
+                    </p>
                   </div>
-                </div>
-              </div>
 
-              {!isPremium && user && (
-                <div className="mt-8 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Crown className="w-6 h-6 text-amber-600" />
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          Ative o Premium
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Remova anúncios e ganhe acesso ilimitado
+                  {/* Tamanhos */}
+                  <div className="mt-7 bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                    <div className="flex items-start gap-3">
+                      <Info className="w-5 h-5 text-violet-600 flex-shrink-0 mt-1" />
+                      <div className="w-full">
+                        <h4 className="font-semibold text-gray-900 mb-3">
+                          Escolha o tamanho final:
+                        </h4>
+
+                        <div className="flex flex-wrap gap-3">
+                          <SizeButton value={250} label="250 KB" />
+                          <SizeButton value={350} label="350 KB" />
+                          <SizeButton value={500} label="500 KB" />
+                          <SizeButton value={1024} label="1 MB" />
+                        </div>
+
+                        <p className="text-xs text-gray-500 mt-3">
+                          Dica: 1MB é ótimo para marketplaces que aceitam
+                          imagens maiores, mantendo qualidade.
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setShowPricingModal(true)}
-                      className="bg-amber-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-amber-700 transition-colors"
-                    >
-                      Saiba Mais
-                    </button>
                   </div>
+
+                  {/* Premium CTA */}
+                  {!isPremium && user && (
+                    <div className="mt-7 rounded-2xl p-[1px] bg-gradient-to-r from-amber-400 via-orange-400 to-fuchsia-500">
+                      <div className="bg-white rounded-2xl p-6">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <Crown className="w-6 h-6 text-amber-600" />
+                            <div>
+                              <p className="font-semibold text-gray-900">
+                                Ative o Premium
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Remova anúncios e ganhe acesso ilimitado.
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setShowPricingModal(true)}
+                            className="text-white px-6 py-2 rounded-xl font-semibold shadow-lg bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600 hover:opacity-95 transition"
+                          >
+                            Saiba Mais
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="bg-white rounded-xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-semibold text-gray-800">
-                    Tamanho alvo:{" "}
-                    {targetSize === 1024 ? "1 MB" : `${targetSize} KB`}
-                  </h3>
+            <div className="max-w-4xl mx-auto">
+              <div className="rounded-3xl p-[1px] bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600 shadow-lg">
+                <div className="bg-white rounded-3xl p-8">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        Compressor de Imagens
+                      </h3>
+                      <p className="text-gray-600 mt-1">
+                        Tamanho alvo:{" "}
+                        <span className="font-semibold">
+                          {targetSize === 1024 ? "1 MB" : `${targetSize} KB`}
+                        </span>
+                      </p>
+                    </div>
 
-                  <button
-                    onClick={reset}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Processar nova imagem
-                  </button>
+                    <button
+                      onClick={reset}
+                      className="text-gray-700 hover:text-gray-900 font-medium"
+                    >
+                      Processar nova imagem
+                    </button>
+                  </div>
+
+                  {/* Progresso */}
+                  {isProcessing ? (
+                    <div className="text-center py-12">
+                      <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-violet-600 mb-4"></div>
+                      <p className="text-gray-600">Processando imagem...</p>
+                    </div>
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-gray-800">
+                            Original
+                          </h4>
+                          <span className="text-sm bg-gray-100 px-3 py-1 rounded-full text-gray-700">
+                            {formatSize(originalSize)}
+                          </span>
+                        </div>
+                        <div className="border-2 border-gray-200 rounded-2xl overflow-hidden bg-gray-50">
+                          <img
+                            src={originalPreview}
+                            alt="Original"
+                            className="w-full h-64 object-contain"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-gray-800">
+                            Comprimida
+                          </h4>
+                          <span className="text-sm bg-green-100 px-3 py-1 rounded-full text-green-700 flex items-center gap-1">
+                            <Check className="w-4 h-4" />
+                            {formatSize(compressedSize)}
+                          </span>
+                        </div>
+                        <div className="border-2 border-green-200 rounded-2xl overflow-hidden bg-gray-50">
+                          <img
+                            src={compressedPreview}
+                            alt="Compressed"
+                            className="w-full h-64 object-contain"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isProcessing && compressedBlob && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">
+                            Redução de tamanho:
+                          </p>
+                          <p className="text-2xl font-extrabold text-gray-900">
+                            {(
+                              (1 - compressedSize / originalSize) *
+                              100
+                            ).toFixed(1)}
+                            <span className="text-green-600">%</span>
+                          </p>
+                        </div>
+
+                        <button
+                          onClick={handleDownload}
+                          className="text-white px-8 py-3 rounded-xl font-semibold shadow-lg bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600 hover:opacity-95 transition flex items-center gap-2"
+                        >
+                          <Download className="w-5 h-5" />
+                          Baixar Imagem
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              </div>
 
-                {isProcessing ? (
-                  <div className="text-center py-12">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mb-4"></div>
-                    <p className="text-gray-600">Processando imagem...</p>
-                  </div>
-                ) : (
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-gray-700">
-                          Original
-                        </h4>
-                        <span className="text-sm bg-gray-100 px-3 py-1 rounded-full text-gray-700">
-                          {formatSize(originalSize)}
-                        </span>
-                      </div>
-                      <div className="border-2 border-gray-200 rounded-lg overflow-hidden bg-gray-50">
-                        <img
-                          src={originalPreview}
-                          alt="Original"
-                          className="w-full h-64 object-contain"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-semibold text-gray-700">
-                          Comprimida
-                        </h4>
-                        <span className="text-sm bg-green-100 px-3 py-1 rounded-full text-green-700 flex items-center gap-1">
-                          <Check className="w-4 h-4" />
-                          {formatSize(compressedSize)}
-                        </span>
-                      </div>
-                      <div className="border-2 border-green-200 rounded-lg overflow-hidden bg-gray-50">
-                        <img
-                          src={compressedPreview}
-                          alt="Compressed"
-                          className="w-full h-64 object-contain"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {!isProcessing && compressedBlob && (
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">
-                          Redução de tamanho:
-                        </p>
-                        <p className="text-2xl font-bold text-green-600">
-                          {((1 - compressedSize / originalSize) * 100).toFixed(
-                            1
-                          )}
-                          %
-                        </p>
-                      </div>
-                      <button
-                        onClick={handleDownload}
-                        className="bg-green-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2 shadow-lg"
-                      >
-                        <Download className="w-5 h-5" />
-                        Baixar Imagem
-                      </button>
-                    </div>
-                  </div>
-                )}
+              {/* Troca rápida de tamanho */}
+              <div className="mt-5 flex flex-wrap gap-3 justify-center">
+                <SizeButton value={250} label="250 KB" />
+                <SizeButton value={350} label="350 KB" />
+                <SizeButton value={500} label="500 KB" />
+                <SizeButton value={1024} label="1 MB" />
               </div>
             </div>
           )
@@ -443,11 +533,13 @@ function App() {
           <Suspense
             fallback={
               <div className="max-w-2xl mx-auto">
-                <div className="bg-white rounded-xl p-12 text-center">
-                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mb-4"></div>
-                  <p className="text-gray-600">
-                    Carregando conversor de PDF...
-                  </p>
+                <div className="rounded-3xl p-[1px] bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600 shadow-lg">
+                  <div className="bg-white rounded-3xl p-12 text-center">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-violet-600 mb-4"></div>
+                    <p className="text-gray-600">
+                      Carregando conversor de PDF...
+                    </p>
+                  </div>
                 </div>
               </div>
             }
@@ -457,6 +549,11 @@ function App() {
         )}
 
         <GoogleAdsense />
+
+        <div className="mt-12 text-center text-sm text-gray-500">
+          <p>Tudo é processado localmente no seu navegador.</p>
+          <p>Nenhum arquivo é enviado para servidor.</p>
+        </div>
       </div>
 
       <AuthModal
