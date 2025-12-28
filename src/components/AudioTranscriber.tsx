@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Mic, Square, Copy } from "lucide-react";
+import { Mic, Square, Copy, Trash2 } from "lucide-react";
 
 const AudioTranscriber: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -42,6 +42,10 @@ const AudioTranscriber: React.FC = () => {
     setIsRecording(false);
   };
 
+  const clearText = () => {
+    setText("");
+  };
+
   return (
     <div className="max-w-3xl mx-auto">
       <div className="rounded-3xl p-8 bg-white shadow-lg border border-gray-100">
@@ -51,10 +55,10 @@ const AudioTranscriber: React.FC = () => {
 
         <p className="text-gray-600 mb-6">
           Grave sua voz e transforme em texto automaticamente | Navegador
-          recomendado: Chorme
+          recomendado: Chrome
         </p>
 
-        <div className="flex gap-3 mb-6">
+        <div className="flex flex-wrap gap-3 mb-6">
           {!isRecording ? (
             <button
               onClick={startRecording}
@@ -73,14 +77,24 @@ const AudioTranscriber: React.FC = () => {
             </button>
           )}
 
-          {text && (
-            <button
-              onClick={() => navigator.clipboard.writeText(text)}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gray-100 text-gray-800 font-semibold"
-            >
-              <Copy className="w-5 h-5" />
-              Copiar texto
-            </button>
+          {!isRecording && text && (
+            <>
+              <button
+                onClick={() => navigator.clipboard.writeText(text)}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gray-100 text-gray-800 font-semibold"
+              >
+                <Copy className="w-5 h-5" />
+                Copiar texto
+              </button>
+
+              <button
+                onClick={clearText}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gray-100 text-red-600 font-semibold"
+              >
+                <Trash2 className="w-5 h-5" />
+                Limpar
+              </button>
+            </>
           )}
         </div>
 
