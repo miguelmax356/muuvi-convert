@@ -14,6 +14,7 @@ import {
   Lock,
   Type,
   Video,
+  Mic,
 } from "lucide-react";
 
 import { compressImage } from "./utils/imageCompressor";
@@ -22,6 +23,7 @@ import { ImagePlatformResizer } from "./components/ImagePlatformResizer";
 import { PdfSecurity } from "./components/PdfSecurity";
 import { TextCaseConverter } from "./components/TextCaseConverter";
 import { VideoCompressor } from "./components/VideoCompressor";
+import AudioTranscriber from "./components/AudioTranscriber";
 
 import { useAuth } from "./context/AuthContext";
 import { AuthModal } from "./components/AuthModal";
@@ -40,7 +42,8 @@ type Tool =
   | "resize"
   | "pdf-security"
   | "text"
-  | "video";
+  | "video"
+  | "audio";
 type TargetSize = 250 | 350 | 500 | 1024;
 
 function App() {
@@ -104,6 +107,13 @@ function App() {
     setCompressedBlob(null);
     setIsDragging(false);
     setIsProcessing(false);
+  };
+
+  const isBrowserSupported = () => {
+    return (
+      typeof window !== "undefined" &&
+      ("MediaRecorder" in window || "webkitSpeechRecognition" in window)
+    );
   };
 
   /* =========================================================================
@@ -216,14 +226,31 @@ function App() {
     <button
       onClick={onClick}
       className={[
-        "inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-semibold transition shadow-sm",
+        // Base
+        "flex items-center justify-center gap-2 rounded-xl font-medium transition shadow-sm",
+
+        // MOBILE (até md)
+        "px-3 py-2 text-xs w-[48%] sm:w-[32%]",
+
+        // DESKTOP (md+)
+        "md:w-auto md:px-5 md:py-3 md:text-sm md:rounded-2xl md:font-semibold",
+
         active
           ? "bg-gradient-to-r from-orange-500 via-fuchsia-500 to-violet-600 text-white"
           : "bg-white border border-gray-200 text-gray-800 hover:bg-gray-50",
       ].join(" ")}
     >
-      <span className={active ? "text-white" : "text-gray-700"}>{icon}</span>
-      {children}
+      <span
+        className={[
+          "flex-shrink-0",
+          "w-4 h-4 md:w-5 md:h-5",
+          active ? "text-white" : "text-gray-700",
+        ].join(" ")}
+      >
+        {icon}
+      </span>
+
+      <span className="whitespace-nowrap">{children}</span>
     </button>
   );
 
@@ -263,6 +290,31 @@ function App() {
     if (currentTool === "text") return <TextCaseConverter />;
 
     if (currentTool === "video") return <VideoCompressor />;
+
+    if (currentTool === "audio") {
+      if (!isBrowserSupported()) {
+        return (
+          <div className="max-w-xl mx-auto mt-10">
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center">
+              <Mic className="w-10 h-10 text-amber-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-amber-800 mb-2">
+                Navegador não suportado
+              </h3>
+              <p className="text-sm text-amber-700">
+                A transcrição de áudio funciona melhor no
+                <strong> Google Chrome </strong>
+                ou navegadores baseados em Chromium.
+              </p>
+              <p className="text-xs text-amber-600 mt-2">
+                Seu navegador atual não suporta as APIs necessárias.
+              </p>
+            </div>
+          </div>
+        );
+      }
+
+      return <AudioTranscriber />;
+    }
 
     if (currentTool === "pdf") {
       return (
@@ -587,6 +639,14 @@ function App() {
               icon={<Video className="w-5 h-5" />}
             >
               Vídeo Curto
+            </ToolButton>
+
+            <ToolButton
+              active={currentTool === "audio"}
+              onClick={() => setCurrentTool("audio")}
+              icon={<Mic className="w-5 h-5" />}
+            >
+              Transcrição de Áudio
             </ToolButton>
           </div>
         </div>
