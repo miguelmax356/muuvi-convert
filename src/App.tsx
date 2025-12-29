@@ -15,6 +15,8 @@ import {
   Type,
   Video,
   Mic,
+  MessageCircle,
+  Link,
 } from "lucide-react";
 
 import { compressImage } from "./utils/imageCompressor";
@@ -24,6 +26,8 @@ import { PdfSecurity } from "./components/PdfSecurity";
 import { TextCaseConverter } from "./components/TextCaseConverter";
 import { VideoCompressor } from "./components/VideoCompressor";
 import AudioTranscriber from "./components/AudioTranscriber";
+import WhatsappLink from "./components/WhatsAppLinkGenerator";
+import LinkShortener from "./components/LinkShortener";
 
 import { useAuth } from "./context/AuthContext";
 import { AuthModal } from "./components/AuthModal";
@@ -43,7 +47,10 @@ type Tool =
   | "pdf-security"
   | "text"
   | "video"
-  | "audio";
+  | "audio"
+  | "whatsapp"
+  | "shortlink";
+
 type TargetSize = 250 | 350 | 500 | 1024;
 
 function App() {
@@ -182,7 +189,9 @@ function App() {
   /* =========================================================================
    * CHECKOUT (mantive seu “gancho” sem alterar o layout)
    * ========================================================================= */
-  const handleCheckout = async (plan: "premium_monthly" | "premium_yearly") => {
+  const handleCheckout = async (
+    _plan: "premium_monthly" | "premium_yearly"
+  ) => {
     if (!user) {
       setAuthMode("signup");
       setShowAuthModal(true);
@@ -290,6 +299,10 @@ function App() {
     if (currentTool === "text") return <TextCaseConverter />;
 
     if (currentTool === "video") return <VideoCompressor />;
+
+    if (currentTool === "whatsapp") return <WhatsappLink />;
+
+    if (currentTool === "shortlink") return <LinkShortener />;
 
     if (currentTool === "audio") {
       if (!isBrowserSupported()) {
@@ -647,6 +660,22 @@ function App() {
               icon={<Mic className="w-5 h-5" />}
             >
               Transcrição de Áudio
+            </ToolButton>
+
+            <ToolButton
+              active={currentTool === "whatsapp"}
+              onClick={() => setCurrentTool("whatsapp")}
+              icon={<MessageCircle className="w-5 h-5" />}
+            >
+              Links de WhatsApp
+            </ToolButton>
+
+            <ToolButton
+              active={currentTool === "shortlink"}
+              onClick={() => setCurrentTool("shortlink")}
+              icon={<Link className="w-5 h-5" />}
+            >
+              Encurtador de Link
             </ToolButton>
           </div>
         </div>
