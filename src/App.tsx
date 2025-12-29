@@ -597,7 +597,8 @@ function App() {
           </h1>
 
           <p className="text-lg text-gray-600">
-            Conversão de PDF + Otimização de imagens online, gratuita e rápida.
+            Converta PDF, redimensione imagens, transcreva áudio e crie links
+            para WhatsApp — tudo online, grátis e rápido.
           </p>
 
           {/* Menu de ferramentas */}
