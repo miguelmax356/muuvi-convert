@@ -28,6 +28,7 @@ import { VideoCompressor } from "./components/VideoCompressor";
 import AudioTranscriber from "./components/AudioTranscriber";
 import WhatsappLink from "./components/WhatsAppLinkGenerator";
 import LinkShortener from "./components/LinkShortener";
+import { ImageConverter } from "./components/ImageConverter";
 
 import { useAuth } from "./context/AuthContext";
 import { AuthModal } from "./components/AuthModal";
@@ -41,6 +42,7 @@ const PDFConverter = lazy(() =>
 
 type Tool =
   | "image"
+  | "image-convert"
   | "pdf"
   | "bg"
   | "resize"
@@ -303,6 +305,8 @@ function App() {
     if (currentTool === "whatsapp") return <WhatsappLink />;
 
     if (currentTool === "shortlink") return <LinkShortener />;
+
+    if (currentTool === "image-convert") return <ImageConverter />;
 
     if (currentTool === "audio") {
       if (!isBrowserSupported()) {
@@ -604,6 +608,14 @@ function App() {
           {/* Menu de ferramentas */}
           <div className="flex flex-wrap gap-3 justify-center mt-8">
             <ToolButton
+              active={currentTool === "image-convert"}
+              onClick={() => setCurrentTool("image-convert")}
+              icon={<ImageIcon className="w-5 h-5" />}
+            >
+              Conversor de Imagens
+            </ToolButton>
+
+            <ToolButton
               active={currentTool === "bg"}
               onClick={() => setCurrentTool("bg")}
               icon={<Scissors className="w-5 h-5" />}
@@ -709,9 +721,8 @@ function App() {
           onCheckout={handleCheckout}
           isLoading={isCheckoutLoading}
         />
-
-        <Footer />
       </div>
+      <Footer />
     </div>
   );
 }
