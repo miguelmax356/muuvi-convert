@@ -476,26 +476,20 @@ export function ImageConverter() {
                       </div>
                     </div>
 
-                    {(j.status === "processing" || j.msg) && (
-                      <div className="mt-3">
-                        <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                          <span className="truncate">
-                            {j.msg || "Processando..."}
-                          </span>
-                          <span>{j.progress ? `${j.progress}%` : ""}</span>
-                        </div>
-                        <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-blue-600 transition-all duration-300"
-                            style={{
-                              width: `${Math.min(
-                                100,
-                                Math.max(0, j.progress)
-                              )}%`,
-                            }}
-                          />
-                        </div>
+                    {j.status === "done" && j.result ? (
+                      <button onClick={() => handleDownload(j)} className="...">
+                        <Download className="w-4 h-4" />
+                        Baixar
+                      </button>
+                    ) : j.status === "error" ? (
+                      <div className="text-xs text-rose-700 font-semibold px-3 py-2">
+                        Não foi possível converter
                       </div>
+                    ) : (
+                      <button disabled className="...">
+                        <Download className="w-4 h-4" />
+                        Baixar
+                      </button>
                     )}
 
                     {j.status === "error" && (
