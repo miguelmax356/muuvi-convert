@@ -9,7 +9,7 @@ export default function LinkShortener() {
     if (!url) return;
 
     const randomCode = Math.random().toString(36).substring(2, 8);
-    const short = `https://muuvi.link/${randomCode}`;
+    const short = `https://muuvi.convert.link/${randomCode}`;
 
     setShortUrl(short);
   }
